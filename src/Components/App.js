@@ -5,8 +5,6 @@ import Nav from './Nav';
 import SelectedShowContainer from './SelectedShowContainer';
 import { Grid } from 'semantic-ui-react';
 
-
-
 class App extends Component {
   state = {
     shows: [],
@@ -14,17 +12,40 @@ class App extends Component {
     selectedShow: "",
     episodes: [],
     filterByRating: "",
+    page: 1
   }
 
   componentDidMount = () => {
-    Adapter.getShows().then(shows => this.setState({shows}))
+    this.loadShows()
+    window.onscroll = () => {
+      const doc = document.documentElement
+      if (
+        doc.scrollTop + 2000 > doc.scrollHeight
+      ) {
+        this.fetchNext()
+      }
+    }
+  }
+
+  loadShows = () => {
+    Adapter.getShows(this.state.page)
+      .then(shows => 
+         this.setState({shows: [...this.state.shows, ...shows] })
+        
+      )
   }
 
   componentDidUpdate = () => {
     window.scrollTo(0, 0)
   }
 
-  handleSearch (e){
+  fetchNext = () => {
+    this.setState({
+      page: this.state.page + 1
+    }, this.loadShows)
+  }
+
+  handleSearch = (e) => {
     this.setState({ searchTerm: e.target.value.toLowerCase() })
   }
 
@@ -34,10 +55,10 @@ class App extends Component {
 
   selectShow = (show) => {
     Adapter.getShowEpisodes(show.id)
-    .then((episodes) => this.setState({
+    .then(episodes => this.setState({
       selectedShow: show,
       episodes
-    }))
+      })).then(() => window.scrollTo(0, 0))
   }
 
   displayShows = () => {
@@ -56,7 +77,7 @@ class App extends Component {
         <Nav handleFilter={this.handleFilter} handleSearch={this.handleSearch} searchTerm={this.state.searchTerm}/>
         <Grid celled>
           <Grid.Column width={5}>
-            {!!this.state.selectedShow ? <SelectedShowContainer selectedShow={this.state.selectedShow} allEpisodes={this.state.episodes}/> : <div/>}
+            {!!this.state.selectedShow ? <SelectedShowContainer selectedShow={this.state.selectedShow} episodes={this.state.episodes}/> : <div/>}
           </Grid.Column>
           <Grid.Column width={11}>
             <TVShowList shows={this.displayShows()} selectShow={this.selectShow} searchTerm={this.state.searchTerm}/>
